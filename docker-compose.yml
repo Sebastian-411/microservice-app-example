@@ -1,0 +1,127 @@
+version: '1'
+
+services:
+  auth-api:
+    build: ./auth-api
+    ports:
+      - "8000:8000"
+    environment:
+      - AUTH_API_PORT=8000
+      - USERS_API_ADDRESS=http://users-api:8083
+      - JWT_SECRET=JUANSE
+      - ZIPKIN_URL=http://zipkin:9411
+    depends_on:
+      - zipkin
+      - users-api
+    networks:
+      - app-network
+
+  users-api:
+    build: ./users-api
+    ports:
+      - "8083:8083"
+    environment:
+      - JWT_SECRET=JUANSE
+      - SERVER_PORT=8083
+      - ZIPKIN_URL=http://zipkin:9411
+    depends_on:
+      - zipkin
+    networks:
+      - app-network
+
+  log-message-processor:
+    build: ./log-message-processor
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_CHANNEL=log_channel
+      - ZIPKIN_URL=http://zipkin:9411
+    depends_on:
+      - zipkin
+      - redis
+    networks:
+      - app-network
+
+  todos-api:
+    build: ./todos-api
+    ports:
+      - "8082:8082"
+    environment:
+      - TODO_API_PORT=8082
+      - JWT_SECRET=JUANSE
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_CHANNEL=log_channel
+      - ZIPKIN_URL=http://zipkin:9411
+    depends_on:
+      - zipkin
+      - redis
+    networks:
+      - app-network
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - AUTH_API_ADDRESS=http://auth-api:8000
+      - TODOS_API_ADDRESS=http://todos-api:8082
+      - ZIPKIN_URL=http://zipkin:9411
+    depends_on:
+      - zipkin
+      - auth-api
+      - todos-api
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7.0
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  zipkin:
+    image: openzipkin/zipkin:2.23
+    ports:
+      - "9411:9411"
+    networks:
+      - app-network
+
+  prometheus:
+    image: prom/prometheus
+    user: "65534"
+    environment:
+      - PROMETHEUS_AUTH_TOKEN=${PROMETHEUS_AUTH_TOKEN}
+    volumes:
+      - "./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml"
+      - "./prometheus/data:/prometheus"
+    ports:
+      - "9090:9090"
+    networks:
+      - app-network
+    depends_on:
+      - frontend
+
+  grafana:
+    image: grafana/grafana
+    user: "472" 
+    volumes:
+      - "./grafana/data:/var/lib/grafana"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin  
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
+
+
+networks:
+  app-network:
+    driver: bridge
