@@ -28,6 +28,11 @@ public class JwtAuthenticationFilter extends GenericFilterBean {
         final HttpServletResponse response = (HttpServletResponse) res;
         final String authHeader = request.getHeader("authorization");
 
+        if ("/metrics".equals(request.getRequestURI()) || "/prometheus".equals(request.getRequestURI()) || request.getRequestURI().startsWith("/actuator")) {
+            chain.doFilter(req, res);
+            return;
+        }
+        
         if ("OPTIONS".equals(request.getMethod())) {
             response.setStatus(HttpServletResponse.SC_OK);
 

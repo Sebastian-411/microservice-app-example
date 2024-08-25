@@ -1,15 +1,21 @@
 package com.elgris.usersapi;
 
-import com.elgris.usersapi.security.JwtAuthenticationFilter;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.context.annotation.Bean;
+
+import io.prometheus.client.hotspot.DefaultExports;
+import io.prometheus.client.spring.boot.EnablePrometheusEndpoint;
+import io.prometheus.client.spring.boot.EnableSpringBootMetricsCollector;
+import io.prometheus.client.spring.web.EnablePrometheusTiming;
 
 @SpringBootApplication
+@EnablePrometheusEndpoint
+@EnableSpringBootMetricsCollector
+@EnablePrometheusTiming
 public class UsersApiApplication {
 
 	public static void main(String[] args) {
+		DefaultExports.initialize();
 		SpringApplication.run(UsersApiApplication.class, args);
-	}
+	}	
 }
