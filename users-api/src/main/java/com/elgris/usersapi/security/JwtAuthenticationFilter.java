@@ -28,7 +28,12 @@ public class JwtAuthenticationFilter extends GenericFilterBean {
         final HttpServletResponse response = (HttpServletResponse) res;
         final String authHeader = request.getHeader("authorization");
 
-        if ("/metrics".equals(request.getRequestURI()) || "/prometheus".equals(request.getRequestURI()) || request.getRequestURI().startsWith("/actuator")) {
+        // Check if the request URI matches specific paths related to metrics or actuator endpoints
+        if ("/metrics".equals(request.getRequestURI()) || 
+            "/prometheus".equals(request.getRequestURI()) || 
+            request.getRequestURI().startsWith("/actuator")) {
+            
+            // Pass the request and response to the next filter in the chain without additional processing
             chain.doFilter(req, res);
             return;
         }

@@ -13,10 +13,11 @@ import (
 	"github.com/labstack/echo/middleware"
 	gommonlog "github.com/labstack/gommon/log"
 	"github.com/prometheus/client_golang/prometheus"
-    "github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
+	// Prometheus counter for tracking the number of requests handled by the Auth API
 	requestCount = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "auth_api_requests_total",
@@ -27,27 +28,31 @@ var (
 )
 
 var (
-	// ErrHttpGenericMessage that is returned in general case, details should be logged in such case
+	// ErrHttpGenericMessage is returned for generic errors, details should be logged
 	ErrHttpGenericMessage = echo.NewHTTPError(http.StatusInternalServerError, "something went wrong, please try again later")
 
-	// ErrWrongCredentials indicates that login attempt failed because of incorrect login or password
+	// ErrWrongCredentials is returned when login fails due to incorrect credentials
 	ErrWrongCredentials = echo.NewHTTPError(http.StatusUnauthorized, "username or password is invalid")
 
+	// Default JWT secret key
 	jwtSecret = "myfancysecret"
 )
 
 func main() {
-	
+	// Register Prometheus metrics
 	prometheus.MustRegister(requestCount)
 
+	// Retrieve configuration from environment variables
 	hostport := ":" + os.Getenv("AUTH_API_PORT")
 	userAPIAddress := os.Getenv("USERS_API_ADDRESS")
 
+	// Override default JWT secret if specified in environment variables
 	envJwtSecret := os.Getenv("JWT_SECRET")
 	if len(envJwtSecret) != 0 {
 		jwtSecret = envJwtSecret
 	}
 
+	// Initialize UserService with allowed user hashes
 	userService := UserService{
 		Client:         http.DefaultClient,
 		UserAPIAddress: userAPIAddress,
@@ -58,8 +63,10 @@ func main() {
 		},
 	}
 
+	// Create a new Echo instance
 	e := echo.New()
 
+	// Middleware to count requests
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			method := c.Request().Method
@@ -69,23 +76,26 @@ func main() {
 			}()
 			err := next(c)
 			if err != nil {
-				httpError, ok := err.(*echo.HTTPError)
-				if ok {
+				if httpError, ok := err.(*echo.HTTPError); ok {
 					status = httpError.Code
 				}
 			}
 			return err
 		}
 	})
+
+	// Route for Prometheus metrics
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
-	
+
+	// Set log level
 	e.Logger.SetLevel(gommonlog.INFO)
 
+	// Initialize Zipkin tracing if URL is provided
 	fmt.Println("zipkin")
 	if zipkinURL := os.Getenv("ZIPKIN_URL"); len(zipkinURL) != 0 {
 		zipkinURL := fmt.Sprintf("%s/api/v2/spans", zipkinURL)
 
-		e.Logger.Infof("init tracing to Zipkit at %s", zipkinURL)
+		e.Logger.Infof("init tracing to Zipkin at %s", zipkinURL)
 
 		if tracedMiddleware, tracedClient, err := initTracing(zipkinURL); err == nil {
 			e.Use(echo.WrapMiddleware(tracedMiddleware))
@@ -97,26 +107,29 @@ func main() {
 		e.Logger.Infof("Zipkin URL was not provided, tracing is not initialised")
 	}
 
+	// Use standard middlewares
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())
 
-	// Route => handler
+	// Define routes and handlers
 	e.GET("/version", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Auth API, written in Go\n")
 	})
 
 	e.POST("/login", getLoginHandler(userService))
 
-	// Start server
+	// Start the server
 	e.Logger.Fatal(e.Start(hostport))
 }
 
+// LoginRequest represents the structure of a login request
 type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
+// getLoginHandler creates a handler function for the login endpoint
 func getLoginHandler(userService UserService) echo.HandlerFunc {
 	f := func(c echo.Context) error {
 		requestData := LoginRequest{}
@@ -136,9 +149,9 @@ func getLoginHandler(userService UserService) echo.HandlerFunc {
 
 			return ErrWrongCredentials
 		}
-		token := jwt.New(jwt.SigningMethodHS256)
 
-		// Set claims
+		// Create a new JWT token
+		token := jwt.New(jwt.SigningMethodHS256)
 		claims := token.Claims.(jwt.MapClaims)
 		claims["username"] = user.Username
 		claims["firstname"] = user.FirstName
@@ -146,7 +159,7 @@ func getLoginHandler(userService UserService) echo.HandlerFunc {
 		claims["role"] = user.Role
 		claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
 
-		// Generate encoded token and send it as response.
+		// Generate encoded token and send it as response
 		t, err := token.SignedString([]byte(jwtSecret))
 		if err != nil {
 			log.Printf("could not generate a JWT token: %s", err.Error())

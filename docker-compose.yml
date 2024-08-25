@@ -1,127 +1,136 @@
-version: '1'
+version: '1'  # Specifies the version of Docker Compose syntax being used
 
 services:
+  # Authentication API Service
   auth-api:
-    build: ./auth-api
+    build: ./auth-api  # Specifies the build context (the directory with the Dockerfile for this service)
     ports:
-      - "8000:8000"
-    environment:
+      - "8000:8000"  # Maps port 8000 on the host to port 8000 on the container
+    environment:  # Defines environment variables for the auth-api container
       - AUTH_API_PORT=8000
-      - USERS_API_ADDRESS=http://users-api:8083
-      - JWT_SECRET=JUANSE
-      - ZIPKIN_URL=http://zipkin:9411
+      - USERS_API_ADDRESS=http://users-api:8083  # URL for the users-api service, used for internal communication
+      - JWT_SECRET=JUANSE  # Secret key for JWT token generation
+      - ZIPKIN_URL=http://zipkin:9411  # URL for Zipkin, used for distributed tracing
     depends_on:
-      - zipkin
-      - users-api
+      - zipkin  # Ensures that the Zipkin service is started before auth-api
+      - users-api  # Ensures that the users-api service is started before auth-api
     networks:
-      - app-network
+      - app-network  # Specifies the Docker network this service will use
 
+  # Users API Service
   users-api:
-    build: ./users-api
+    build: ./users-api  # Specifies the build context for the users-api service
     ports:
-      - "8083:8083"
+      - "8083:8083"  # Maps port 8083 on the host to port 8083 on the container
     environment:
-      - JWT_SECRET=JUANSE
-      - SERVER_PORT=8083
-      - ZIPKIN_URL=http://zipkin:9411
+      - JWT_SECRET=JUANSE  # Secret key for JWT token validation
+      - SERVER_PORT=8083  # Port on which the users-api will run inside the container
+      - ZIPKIN_URL=http://zipkin:9411  # URL for Zipkin, used for distributed tracing
     depends_on:
-      - zipkin
+      - zipkin  # Ensures that the Zipkin service is started before users-api
     networks:
-      - app-network
+      - app-network  # Specifies the Docker network this service will use
 
+  # Log Message Processor Service
   log-message-processor:
-    build: ./log-message-processor
+    build: ./log-message-processor  # Specifies the build context for the log-message-processor service
     ports:
-      - "8081:8081"
+      - "8081:8081"  # Maps port 8081 on the host to port 8081 on the container
     environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_CHANNEL=log_channel
-      - ZIPKIN_URL=http://zipkin:9411
+      - REDIS_HOST=redis  # Hostname for the Redis service
+      - REDIS_PORT=6379  # Port for Redis service
+      - REDIS_CHANNEL=log_channel  # Redis channel to subscribe for log messages
+      - ZIPKIN_URL=http://zipkin:9411  # URL for Zipkin, used for distributed tracing
     depends_on:
-      - zipkin
-      - redis
+      - zipkin  # Ensures that the Zipkin service is started before log-message-processor
+      - redis  # Ensures that the Redis service is started before log-message-processor
     networks:
-      - app-network
+      - app-network  # Specifies the Docker network this service will use
 
+  # TODOs API Service
   todos-api:
-    build: ./todos-api
+    build: ./todos-api  # Specifies the build context for the todos-api service
     ports:
-      - "8082:8082"
+      - "8082:8082"  # Maps port 8082 on the host to port 8082 on the container
     environment:
-      - TODO_API_PORT=8082
-      - JWT_SECRET=JUANSE
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_CHANNEL=log_channel
-      - ZIPKIN_URL=http://zipkin:9411
+      - TODO_API_PORT=8082  # Port on which the todos-api will run inside the container
+      - JWT_SECRET=JUANSE  # Secret key for JWT token validation
+      - REDIS_HOST=redis  # Hostname for the Redis service
+      - REDIS_PORT=6379  # Port for Redis service
+      - REDIS_CHANNEL=log_channel  # Redis channel to subscribe for log messages
+      - ZIPKIN_URL=http://zipkin:9411  # URL for Zipkin, used for distributed tracing
     depends_on:
-      - zipkin
-      - redis
+      - zipkin  # Ensures that the Zipkin service is started before todos-api
+      - redis  # Ensures that the Redis service is started before todos-api
     networks:
-      - app-network
+      - app-network  # Specifies the Docker network this service will use
 
+  # Frontend Service
   frontend:
-    build: ./frontend
+    build: ./frontend  # Specifies the build context for the frontend service
     ports:
-      - "8080:8080"
+      - "8080:8080"  # Maps port 8080 on the host to port 8080 on the container
     environment:
-      - PORT=8080
-      - AUTH_API_ADDRESS=http://auth-api:8000
-      - TODOS_API_ADDRESS=http://todos-api:8082
-      - ZIPKIN_URL=http://zipkin:9411
+      - PORT=8080  # Port on which the frontend will run inside the container
+      - AUTH_API_ADDRESS=http://auth-api:8000  # URL for the auth-api service
+      - TODOS_API_ADDRESS=http://todos-api:8082  # URL for the todos-api service
+      - ZIPKIN_URL=http://zipkin:9411  # URL for Zipkin, used for distributed tracing
     depends_on:
-      - zipkin
-      - auth-api
-      - todos-api
+      - zipkin  # Ensures that the Zipkin service is started before frontend
+      - auth-api  # Ensures that the auth-api service is started before frontend
+      - todos-api  # Ensures that the todos-api service is started before frontend
     networks:
-      - app-network
+      - app-network  # Specifies the Docker network this service will use
 
+  # Redis Service
   redis:
-    image: redis:7.0
+    image: redis:7.0  # Uses the official Redis image from Docker Hub
     ports:
-      - "6379:6379"
+      - "6379:6379"  # Maps port 6379 on the host to port 6379 on the container
     networks:
-      - app-network
+      - app-network  # Specifies the Docker network this service will use
 
+  # Zipkin Service for Distributed Tracing
   zipkin:
-    image: openzipkin/zipkin:2.23
+    image: openzipkin/zipkin:2.23  # Uses the official Zipkin image from Docker Hub
     ports:
-      - "9411:9411"
+      - "9411:9411"  # Maps port 9411 on the host to port 9411 on the container
     networks:
-      - app-network
+      - app-network  # Specifies the Docker network this service will use
 
+  # Prometheus Service for Monitoring
   prometheus:
-    image: prom/prometheus
-    user: "65534"
+    image: prom/prometheus  # Uses the official Prometheus image from Docker Hub
+    user: "65534"  # Specifies the user to run Prometheus as (non-root for security)
     environment:
-      - PROMETHEUS_AUTH_TOKEN=${PROMETHEUS_AUTH_TOKEN}
+      - PROMETHEUS_AUTH_TOKEN=${PROMETHEUS_AUTH_TOKEN}  # Uses environment variable for authentication
     volumes:
-      - "./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml"
-      - "./prometheus/data:/prometheus"
+      - "./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml"  # Mounts the Prometheus configuration file
+      - "./prometheus/data:/prometheus"  # Mounts the Prometheus data directory
     ports:
-      - "9090:9090"
+      - "9090:9090"  # Maps port 9090 on the host to port 9090 on the container
     networks:
-      - app-network
+      - app-network  # Specifies the Docker network this service will use
     depends_on:
-      - frontend
+      - frontend  # Ensures that the frontend service is started before Prometheus
 
+  # Grafana Service for Data Visualization
   grafana:
-    image: grafana/grafana
-    user: "472" 
+    image: grafana/grafana  # Uses the official Grafana image from Docker Hub
+    user: "472"  # Specifies the user to run Grafana as (non-root for security)
     volumes:
-      - "./grafana/data:/var/lib/grafana"
+      - "./grafana/data:/var/lib/grafana"  # Mounts the Grafana data directory
     environment:
-      - GF_SECURITY_ADMIN_USER=admin  
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin  # Admin user for Grafana
+      - GF_SECURITY_ADMIN_PASSWORD=admin  # Admin password for Grafana
     ports:
-      - "3000:3000"
+      - "3000:3000"  # Maps port 3000 on the host to port 3000 on the container
     depends_on:
-      - prometheus
+      - prometheus  # Ensures that the Prometheus service is started before Grafana
     networks:
-      - app-network
+      - app-network  # Specifies the Docker network this service will use
 
-
+# Docker Network Definition
 networks:
   app-network:
-    driver: bridge
+    driver: bridge  # Defines the Docker network type as 'bridge' for container communication
