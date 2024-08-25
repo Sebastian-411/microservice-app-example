@@ -17,7 +17,7 @@ The service scans environment for variables:
 ```
 ## Running
 ```
-JWT_SECRET=PRFT SERVER_PORT=8083 java -jar target/users-api-0.0.1-SNAPSHOT.jar
+JWT_SECRET=JUANSE SERVER_PORT=8083 java -jar target/users-api-0.0.1-SNAPSHOT.jar
 ```
 ## Usage
 In case you need to test this API, you can use it as follows:
