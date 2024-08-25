@@ -1,0 +1,53 @@
+# Ignorar directorios y archivos de auth-api
+auth-api/vendor/
+auth-api/auth-api/
+
+# Ignorar archivos y directorios específicos del frontend
+frontend/.DS_Store
+frontend/node_modules/
+frontend/dist/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# Ignorar archivos de configuración de editores en frontend
+frontend/.idea/
+frontend/*.suo
+frontend/*.ntvs*
+frontend/*.njsproj
+frontend/*.sln
+
+# Ignorar directorios y archivos de users-api
+users-api/.mvn/
+users-api/target/
+
+# Ignorar directorios de datos de Prometheus y Grafana
+prometheus/data/
+grafana/data/
+
+# Ignorar entorno virtual de Python en log-message-processor
+log-message-processor/venv/
+
+# Ignorar archivos y directorios específicos de todos-api
+todos-api/.DS_Store
+todos-api/node_modules/
+todos-api/dist/
+todos-api/npm-debug.log*
+todos-api/yarn-debug.log*
+todos-api/yarn-error.log*
+
+# Ignorar archivos de configuración de editores en todos-api
+todos-api/.idea/
+todos-api/.vscode/
+todos-api/*.suo
+todos-api/*.ntvs*
+todos-api/*.njsproj
+todos-api/*.sln
+
+# Ignorar archivos globales de configuración de editores
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln

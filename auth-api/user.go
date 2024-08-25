@@ -52,6 +52,7 @@ func (h *UserService) getUser(ctx context.Context, username string) (User, error
 	var user User
 
 	token, err := h.getUserAPIToken(username)
+	fmt.Println(token)
 	if err != nil {
 		return user, err
 	}

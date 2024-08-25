@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -11,6 +12,18 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	gommonlog "github.com/labstack/gommon/log"
+	"github.com/prometheus/client_golang/prometheus"
+    "github.com/prometheus/client_golang/prometheus/promhttp"
+)
+
+var (
+	requestCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "auth_api_requests_total",
+			Help: "Total number of requests handled by the Auth API",
+		},
+		[]string{"method", "status"},
+	)
 )
 
 var (
@@ -24,6 +37,9 @@ var (
 )
 
 func main() {
+	
+	prometheus.MustRegister(requestCount)
+
 	hostport := ":" + os.Getenv("AUTH_API_PORT")
 	userAPIAddress := os.Getenv("USERS_API_ADDRESS")
 
@@ -43,9 +59,32 @@ func main() {
 	}
 
 	e := echo.New()
+
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			method := c.Request().Method
+			status := http.StatusOK
+			defer func() {
+				requestCount.WithLabelValues(method, fmt.Sprintf("%d", status)).Inc()
+			}()
+			err := next(c)
+			if err != nil {
+				httpError, ok := err.(*echo.HTTPError)
+				if ok {
+					status = httpError.Code
+				}
+			}
+			return err
+		}
+	})
+	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
+	
 	e.Logger.SetLevel(gommonlog.INFO)
 
+	fmt.Println("zipkin")
 	if zipkinURL := os.Getenv("ZIPKIN_URL"); len(zipkinURL) != 0 {
+		zipkinURL := fmt.Sprintf("%s/api/v2/spans", zipkinURL)
+
 		e.Logger.Infof("init tracing to Zipkit at %s", zipkinURL)
 
 		if tracedMiddleware, tracedClient, err := initTracing(zipkinURL); err == nil {
