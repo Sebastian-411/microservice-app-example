@@ -102,8 +102,6 @@ services:
   prometheus:
     image: prom/prometheus  # Uses the official Prometheus image from Docker Hub
     user: "65534"  # Specifies the user to run Prometheus as (non-root for security)
-    environment:
-      - PROMETHEUS_AUTH_TOKEN=${PROMETHEUS_AUTH_TOKEN}  # Uses environment variable for authentication
     volumes:
       - "./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml"  # Mounts the Prometheus configuration file
       - "./prometheus/data:/prometheus"  # Mounts the Prometheus data directory

@@ -17,5 +17,5 @@ scrape_configs:
 
   - job_name: 'log-message-processor'
     static_configs:
-      - targets: ['log-message-processor:8081']  
+      - targets: ['log-message-processor:8081']
 
